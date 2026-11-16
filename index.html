@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WATERNEX — Smarter Water Better Future</title>
+    <!-- MQTT.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.3.7/mqtt.min.js"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+    <base target="_blank">
+</head>
+<body>
+
+    <!-- Glow background -->
+    <div class="glow glow-1"></div>
+    <div class="glow glow-2"></div>
+
+    <!-- Header Section -->
+    <header class="app-header">
+        <div class="brand-wrapper">
+           <img src="assets/Logo Smart Water Tank WATERNEX.png" alt="">
+        </div>
+
+        <!-- Connection Status & Notification -->
+        <div class="header-actions">
+            <button id="notifBtn" onclick="requestNotificationPermission()" class="btn-notif">
+                <i class="fa-solid fa-bell"></i> Izinkan Notifikasi
+            </button>
+            <div id="statusBadge" class="status-badge warning">
+                <span class="status-dot"></span>
+                <span id="statusText">Menghubungkan...</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Grid -->
+    <main class="main-grid">
+
+        <!-- KOTAK 1: Persentase Ketinggian Air & Visualisasi Tandon -->
+        <div class="glass-card">
+            <h2 class="card-title">Kandungan & Visual Tandon</h2>
+            
+            <div class="tank-container">
+                <div id="waterFill" class="water-fill">
+                </div>
+            </div>
+
+            <div class="text-center-box">
+                <div class="percentage-wrapper">
+                    <span id="textPercent" class="metric-number">0</span>
+                    <span class="metric-symbol">%</span>
+                </div>
+            </div>
+
+            <!-- Indicator Bar -->
+            <div class="progress-section">
+                <div class="progress-track">
+                    <div id="progressBar" class="progress-bar"></div>
+                </div>
+                <div class="progress-labels">
+                    <span>0% (Kosong)</span>
+                    <span>34% (Kritis)</span>
+                    <span>90% (Penuh)</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- KOTAK 2: Status Kebocoran (Leak Detection) -->
+        <div class="glass-card">
+            <div class="card-inner-top">
+                <h2 class="card-title">Keamanan & Kebocoran</h2>
+
+                <!-- Status Kebocoran (Rain Sensor) -->
+                <div id="leakCard" class="leak-card secure">
+                    <div class="leak-info">
+                        <div id="leakIconBg" class="leak-icon-bg">
+                            <i id="leakIcon" class="fa-solid fa-shield-halved"></i>
+                        </div>
+                        <div>
+                            <p class="leak-label">Deteksi Kebocoran</p>
+                            <p id="leakStatusText" class="leak-status">Aman (Tidak Bocor)</p>
+                        </div>
+                    </div>
+                    <span id="leakBadge" class="badge secure">Secure</span>
+                </div>
+
+                <!-- Status Alert Tandon -->
+                <div id="alertBox" class="alert-box info">
+                    <i id="alertIcon" class="fa-solid fa-circle-info"></i>
+                    <div>
+                        <p class="alert-subtitle">Kondisi Tandon</p>
+                        <p id="alertStatus" class="alert-main">Menerima Data...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-footer-note">
+                <i class="fa-solid fa-circle-info"></i> Sensor hujan aktif memantau rembesan atau genangan di bawah tandon.
+            </div>
+        </div>
+
+        <!-- KOTAK 3: Status Pompa & Tombol Kontrol -->
+        <div class="glass-card">
+            <div class="card-inner-top">
+                <h2 class="card-title">Status Pompa</h2>
+
+                <!-- Status Pompa -->
+                <div class="pump-status-box">
+                    <div class="pump-info">
+                        <div id="pumpIconBg" class="pump-icon-bg">
+                            <i class="fa-solid fa-gears"></i>
+                        </div>
+                        <div>
+                            <p class="pump-label">Relay Pompa</p>
+                            <p id="pumpStatusText" class="pump-status">OFF</p>
+                        </div>
+                    </div>
+                    <span id="pumpBadge" class="badge standby">Standby</span>
+                </div>
+
+                <!-- Tombol Kontrol Manual Pompa -->
+                <div class="control-section">
+                    <p class="control-label">Kontrol Manual:</p>
+                    <div class="control-buttons">
+                        <button onclick="sendPumpCommand('ON')" class="btn-control btn-on">
+                            <i class="fa-solid fa-power-off"></i> Manual ON
+                        </button>
+                        <button onclick="sendPumpCommand('AUTO')" class="btn-control btn-auto">
+                            <i class="fa-solid fa-rotate"></i> Kembali Auto
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Additional Details -->
+            <div class="details-section">
+                <div class="detail-row">
+                    <span class="detail-key">Tinggi Maksimal:</span>
+                    <span class="detail-val">15 cm</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-key">Update Terakhir:</span>
+                    <span id="lastUpdate" class="detail-val cyan">-</span>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Grafik Pemakaian Air Per Jam -->
+    <section class="glass-card chart-section">
+        <div class="chart-header">
+            <div>
+                <h2 class="card-title">
+                    <i class="fa-solid fa-chart-column"></i> Grafik Pemakaian Air Per Jam
+                </h2>
+                <p class="chart-desc">Estimasi konsumsi air (liter/jam) berdasarkan penurunan ketinggian air</p>
+            </div>
+            <button id="demoBtn" class="btn-demo">
+                <i class="fa-solid fa-flask"></i> Mode Demo
+            </button>
+        </div>
+        <div class="chart-wrapper">
+            <canvas id="usageChart"></canvas>
+        </div>
+    </section>
+
+    <!-- Custom JavaScript -->
+    <script src="script.js"></script>
+</body>
+</html>
